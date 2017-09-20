@@ -28,14 +28,68 @@ std::string hasData(std::string s) {
   return "";
 }
 
+// Add twiddle coefficients
+  bool is_twiddle_on = false;
+  int twiddle_state = 0;
+  int twiddle_idx = 0;
+  int twiddle_iter = 0;
+  double twiddle_best_error = 1000000;
+  std::vector<double> p = {0.27, 0.01, 3.0};
+  std::vector<double> dp = {0.05, 0.001, 0.05};
+
+void twiddle(PID &pid) {
+  	if (twiddle_state == 0) {
+  		twiddle_best_error = pid.TotalError();
+  		p[twiddle_idx] += dp[twiddle_idx];
+  		twiddle_state = 1;
+  	} else if (twiddle_state == 1) {
+  		double pid_total_error = pid.TotalError();
+  		if (pid_total_error < twiddle_best_error) {
+  			twiddle_best_error = pid_total_error;
+  			dp[twiddle_idx] *= 1.1;
+  			// Should rotate over the 3 vector index
+  			twiddle_idx = (twiddle_idx + 1) % 3;
+  			p[twiddle_idx] += dp[twiddle_idx];
+  			twiddle_state = 1;
+  		} else {
+  			p[twiddle_idx] -= 2 * dp[twiddle_idx];
+  			if (p[twiddle_idx] < 0) {
+  				p[twiddle_idx] = 0;
+  				twiddle_idx = (twiddle_idx + 1) % 3;
+  			}
+  			twiddle_state = 2;
+  		}
+  	} else if (twiddle_state == 2) {
+  		double pid_total_error = pid.TotalError();
+  		if(pid_total_error < twiddle_best_error) {
+  			twiddle_best_error = pid_total_error;
+  			dp[twiddle_idx] *= 1.1;
+  			twiddle_idx = (twiddle_idx + 1) % 3;
+  			p[twiddle_idx] += dp[twiddle_idx];
+  			twiddle_state = 1;
+  		} else {
+  			p[twiddle_idx] += dp[twiddle_idx];
+  			dp[twiddle_idx] *= 0.9;
+  			twiddle_idx = (twiddle_idx + 1) % 3;
+  			p[twiddle_idx] += dp[twiddle_idx];
+  			twiddle_state = 1;
+  		}
+  	}
+  	pid.Init(p[0], p[1], p[2]);
+  }
+
 int main()
 {
   uWS::Hub h;
 
-  PID pid;
+  PID pid_steer;
   // TODO: Initialize the pid variable.
+  PID pid_throttle;
 
-  h.onMessage([&pid](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length, uWS::OpCode opCode) {
+  pid_steer.Init(0.15, 0.001, 1.5);
+  pid_throttle.Init(0.2, 0.001, 2.0);
+
+  h.onMessage([&pid_steer, &pid_throttle](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length, uWS::OpCode opCode) {
     // "42" at the start of the message means there's a websocket message event.
     // The 4 signifies a websocket message
     // The 2 signifies a websocket event
@@ -51,15 +105,39 @@ int main()
           double speed = std::stod(j[1]["speed"].get<std::string>());
           double angle = std::stod(j[1]["steering_angle"].get<std::string>());
           double steer_value;
+          double throttle_value;
+          double required_speed = 30.0;
           /*
           * TODO: Calcuate steering value here, remember the steering value is
           * [-1, 1].
           * NOTE: Feel free to play around with the throttle and speed. Maybe use
           * another PID controller to control the speed!
           */
+          // Update the error, calculate steer_value at each step
+          pid_steer.UpdateError(cte);
+          steer_value = pid_steer.TotalError();
+          if(steer_value > 1.0) {
+          	steer_value = 1.0;
+          } else if (steer_value < -1.0) {
+          	steer_value = -1.0;
+          }
+
+          // Update error, calculate throttle_value at each step
+          double throttle_error = speed - required_speed;
+          pid_throttle.UpdateError(throttle_error);
+          throttle_value = pid_throttle.TotalError();
+
           
           // DEBUG
-          std::cout << "CTE: " << cte << " Steering Value: " << steer_value << std::endl;
+          if(!is_twiddle_on) {
+          	std::cout << "CTE: " << cte << " Steering Value: " << steer_value << std::endl;	
+          } else {
+          	twiddle_iter++;
+
+          	twiddle(pid_steer);
+          	twiddle_iter = 0;
+          }
+          
 
           json msgJson;
           msgJson["steering_angle"] = steer_value;
