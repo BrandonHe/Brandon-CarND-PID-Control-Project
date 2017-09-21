@@ -86,6 +86,12 @@ int main()
   // TODO: Initialize the pid variable.
   PID pid_throttle;
 
+
+  //CTE: 5.9237 Steering Value: -0.888555
+  //42["steer",{"steering_angle":-0.888555,"throttle":0.3}]
+  //pid_steer.Init(0.15, 0.000, 0.000);
+  //pid_throttle.Init(0.2, 0.000, 0.000);
+
   //CTE: 2.9761 Steering Value: -0.495939
   //42["steer",{"steering_angle":-0.495938500000001,"throttle":0.3}]
   //pid_steer.Init(0.15, 0.001, 1.5);
@@ -96,6 +102,8 @@ int main()
   //pid_steer.Init(0.15, 0.001, 1.5);
   //pid_throttle.Init(0.3, 0.0001, 0.02);
 
+
+  // The best result result I have verified.
   pid_steer.Init(0.13, 0.0003, 3.01);
   pid_throttle.Init(0.3, 0.0001, 0.02);
 

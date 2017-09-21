@@ -1,5 +1,29 @@
 # CarND-Controls-PID
 Self-Driving Car Engineer Nanodegree Program
+---
+### Describes the effect of the P, I, D component of the PID algorithm in their implementation
+
+
+- The P (proportional) term is the primary to control the cross-track error (CTE) which is weight by a constant value Kp, proportional determine the speed of the control system response, as one increases the proportional gain, the system becomes faster, but care must be taken not make the system unstable. Once P has been set to obtain a desired fast response, the integral term is increased to stop the oscillations. So, if the Kp is too small, it's hard to minimize the error (here consider using P and I terms), unable to response to changes of our system. On the other hand, if Kp is too large, the system will have unstable behavior and overshoot the desired value.
+
+- The I (Integral) term is the controller handle error sum of the cross-track error over the time. it reduces the steady state error, but increases overshoot. Some amount of overshoot is always necessary for a fast system so that it could respond to changes immediately. The integral term is tweaked to achieve a minimal steady state error. The Integral term is weight by a constant Ki, if you have a large Ki, you're trying to correct error over time so it can interfere with your response for dealing with current changes.
+
+- The D (Derivative) term is looking at how the system is behaving between timer intervals, which is weight by a constant value Kd. Once the P and I have been set to get the desired fast control system with minimal steady state error, the derivative term is increased until the loop is acceptably quick to its set point. Increasing derivative term decreases overshoot and yields higher gain with stability but would cause the system to be highly sensitive to noise.
+
+---
+### how chose the final hyperparameters (P, I, D coefficients).
+
+Firstly, I set the controller Integral term's value Ki and Derivative term's value Kd to zero, because the fewer terms is more easier to understand and implement. I tried to set the value of Kp in my filter to find the better value, I referenced the lesson of PID Control, set Kp value to 0.2, and then tried to set value 0.15, the value 0.15 is better than 0.2, but all of them have a very unstable result, it leave out of the desired trajectory. After that, I tried to add the weight Kd to make the car behavior more stable between the time intervals, it evident that it decrease the oscillate, and the way of leaves out of the trajectory is longer than before. 
+
+After several times, I consider to tradeoff one characteristic of a control system for another to better meet their requirements.
+
+The final weights I chose in my PID controller: Kp = 0.13, Ki = 0.0003, Kd = 3.01.
+
+I used the "Twiddle" algorithm to tune the coefficient for the P, I and D components of the controller. The twiddle algorithm is continually adjust the PID coefficients when the car drives, to find the lowest(close to 0) overall error.
+
+Below are the two videos I recorded about chose hyperparameters:
+[![ScreenShot](./output/screenshot6300.png)](https://youtu.be/lrWuNwt9yWQ)
+[![ScreenShot](./output/screenshot6301.png)](https://youtu.be/8c9tRUAYwlg)
 
 ---
 
